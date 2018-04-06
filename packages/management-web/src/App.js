@@ -1,4 +1,4 @@
-import './App.css';
+import './less/all.less';
 
 import React, { Component } from 'react';
 import { Route, BrowserRouter as Router, Switch } from 'react-router-dom';

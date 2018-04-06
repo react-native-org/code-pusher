@@ -10,7 +10,7 @@ import { config } from '../../config';
 const menus = config.menus;
 
 function isAbsolutePath(path) {
-  return path.indexOf('http') === 0;
+  return (path || '').indexOf('http') === 0;
 }
 
 export class MainLayout extends PureComponent {
