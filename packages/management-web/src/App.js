@@ -1,9 +1,8 @@
 import './less/all.less';
 
 import React, { Component } from 'react';
-import { Route, BrowserRouter as Router, Switch } from 'react-router-dom';
-
 import { Provider } from 'react-redux';
+import { Route, BrowserRouter as Router, Switch } from 'react-router-dom';
 import { createStore } from 'redux';
 import { routes } from './routes';
 
