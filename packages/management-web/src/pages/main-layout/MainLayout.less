@@ -1,0 +1,55 @@
+.page-layout {
+  .ant-layout-sider {
+    min-height: 100vh;
+    box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
+    position: relative;
+    z-index: 10;
+    background-color: #011529;
+
+    .logo-div {
+      height: 50px;
+      line-height: 50px;
+      background-color: #02233f;
+
+      h2 {
+        color: #fafbfb;
+        font-weight: bold;
+      }
+    }
+
+    .ant-menu {
+      &.ant-menu-root {
+        margin: 16px 0;
+        background-color: transparent;
+      }
+
+      .ant-menu-sub {
+        background-color: #000c17;
+      }
+    }
+  }
+
+  .ant-layout-header {
+    padding: 0 12px 0 0;
+    height: 50px;
+    line-height: 50px;
+    background-color: #ccc;
+
+    .menu-collapse-icon {
+      font-size: 20px;
+      line-height: 50px;
+      transition: all 0.3s;
+      padding: 0 15px;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #e6f7ff;
+      }
+    }
+  }
+
+  .ant-layout-content {
+    background-color: #fff;
+    padding: 15px;
+  }
+}
