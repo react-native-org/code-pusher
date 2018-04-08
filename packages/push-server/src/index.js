@@ -5,7 +5,7 @@ const config = require('./config');
 fastKoa.initApp({ routesPath: config.routesPath });
 
 fastKoa
-  .listen(7777)
+  .listen(config.port)
   .then(server => {
     const addr = server.address();
     console.log(`Server started. listen ${addr.port}`);

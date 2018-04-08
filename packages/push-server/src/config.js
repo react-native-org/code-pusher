@@ -1,6 +1,6 @@
 const path = require('path');
 
 module.exports = {
-  port: 7777,
+  port: 7000,
   routesPath: path.join(__dirname, 'routes')
 };
