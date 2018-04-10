@@ -1,6 +1,6 @@
 import './LoginPage.less';
 
-import { Button, Checkbox, Col, Form, Icon, Input, Row } from 'antd';
+import { Button, Checkbox, Form, Icon, Input } from 'antd';
 import React, { PureComponent } from 'react';
 import { bindSelf } from '../../utils';
 
