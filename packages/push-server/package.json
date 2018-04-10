@@ -15,5 +15,11 @@
   },
   "devDependencies": {
     "fast-koa-cli": "0.0.1"
+  },
+  "importSort": {
+    ".js, .jsx, .es6, .es,": {
+      "parser": "babylon",
+      "style": "module-compact"
+    }
   }
 }
