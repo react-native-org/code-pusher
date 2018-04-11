@@ -8,8 +8,9 @@
       "jsx": true
     }
   },
-  "globals": {
-    "module": true
+  "env": {
+    "node": true,
+    "browser": true
   },
   "rules": {}
 }
