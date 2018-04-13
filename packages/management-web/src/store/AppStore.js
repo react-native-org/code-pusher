@@ -10,8 +10,6 @@ export class AppStore {
    */
   @observable userInfo = {};
 
-  constructor() {}
-
   /**
    * 设置用户信息，如果参数userInfo为null，则表示清空用户信息
    * @param {object} userInfo
