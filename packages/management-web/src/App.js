@@ -1,30 +1,10 @@
 import './less/all.less';
 
+import { Provider } from 'mobx-react';
 import React, { Component } from 'react';
-import { Provider } from 'react-redux';
 import { Route, BrowserRouter as Router, Switch } from 'react-router-dom';
-import { createStore } from 'redux';
 import { routes } from './routes';
-
-const initialState = {
-  isLogged: false,
-  user: {
-    userName: ''
-  }
-};
-
-const appContextReducer = function(state = initialState, action) {
-  switch (action.type) {
-    case `appContext/bb`:
-      return { ...state, ...action.payload, isLogged: true };
-    case `appContext/test`:
-      return { ...state, isLogged: false, user: {} };
-    default:
-      return state;
-  }
-};
-
-const store = createStore(appContextReducer, initialState);
+import { store } from './store';
 
 class App extends Component {
   render() {
