@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "fast-koa dev",
-    "build": "fast-koa build"
+    "build": "fast-koa build",
+    "test": "jest --coverage"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +17,9 @@
     "sequelize": "^4.37.6"
   },
   "devDependencies": {
-    "fast-koa-cli": "0.0.2"
+    "fast-koa-cli": "0.0.2",
+    "jest": "^22.4.3",
+    "supertest": "^3.0.0"
   },
   "importSort": {
     ".js, .jsx, .es6, .es,": {
