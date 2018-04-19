@@ -3,6 +3,7 @@ const { dbConfig, sequelizeTableConfig } = require('../config');
 
 const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, {
   host: dbConfig.host,
+  port: dbConfig.port,
   dialect: dbConfig.dialect, // 'mysql' | 'sqlite' | 'postgres' | 'mssql',
   pool: Object.assign(
     {
