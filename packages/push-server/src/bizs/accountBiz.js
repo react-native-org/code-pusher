@@ -1,5 +1,5 @@
-const { UserTokenModel, UserModel } = require('../models');
-const { tokenStore } = require('../common');
+const { UserTokenModel, UserModel, sequelize } = require('../models');
+const { tokenStore, sqlMap } = require('../common');
 
 class AccountBiz {
   constructor() {
@@ -14,8 +14,15 @@ class AccountBiz {
    */
   async setUser(ctx, next) {
     const token = ctx.headers['authorization'];
-    const user = await tokenStore.get(token);
-    ctx.state.user = user;
+    if (token) {
+      // 从TokenStore抓取数据
+      let user = await tokenStore.get(token);
+      // 从DB抓一次
+      if (!user) {
+        const results = await sequelize.query('', { type: sequelize.QueryTypes.SELECT });
+      }
+      ctx.state.user = user;
+    }
     await next();
   }
 

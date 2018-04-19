@@ -1,3 +1,5 @@
 const tokenStore = require('./tokenStore');
 
-module.exports = { tokenStore };
+const sqlMap = require('./sqlMap');
+
+module.exports = { tokenStore, sqlMap };
