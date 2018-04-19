@@ -1,3 +1,4 @@
-const { UserModel } = require('../src/models');
+const { UserModel, UserTokenModel } = require('../src/models');
 
-UserModel.sync();
+UserModel.sync({ force: true });
+UserTokenModel.sync({ force: true });

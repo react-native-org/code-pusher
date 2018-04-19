@@ -16,6 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "fast-koa": "0.0.1",
+    "lodash": "^4.17.5",
     "mysql2": "^1.5.3",
     "sequelize": "^4.37.6"
   },

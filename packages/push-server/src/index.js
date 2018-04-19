@@ -1,6 +1,7 @@
 const path = require('path');
 const fastKoa = require('fast-koa');
 const config = require('./config');
+const { accountBiz } = require('./bizs');
 
 fastKoa.initApp({
   routesPath: config.routesPath,
@@ -14,6 +15,9 @@ fastKoa.initApp({
       maxFields: 10,
       maxFieldsSize: 1024 * 1024 * 10 // 10M
     }
+  },
+  onRoutesLoading(app) {
+    app.use(accountBiz.setUser);
   }
 });
 
