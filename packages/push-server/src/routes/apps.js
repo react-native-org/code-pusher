@@ -2,10 +2,8 @@ const Router = require('koa-router');
 const config = require('../config');
 
 const router = new Router({
-  prefix: `/accessKeys`
+  prefix: '/apps'
 });
-
-// router.post('/token');
 
 module.exports = {
   router

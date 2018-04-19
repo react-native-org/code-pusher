@@ -7,3 +7,9 @@ The react native hotfix platform by Microsoft code-push.
 
 ## simple-local-storage
 
+# Tasks
+
+* [ ] Basic hotfix
+* [ ] Release Authority Management
+* [ ] Gray publishing(A/B Testing)
+
