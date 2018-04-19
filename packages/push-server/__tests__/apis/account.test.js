@@ -1,42 +1,12 @@
-var app = require('../../../app');
-var request = require('supertest')(app);
-var should = require('should');
+const testConfig = require('../testConfig');
+const request = require('supertest')(testConfig.apiHost);
 
-describe('api/account/account.test.js', function() {
-  var account = 'xxx';
-  var password = '123456';
-
-  describe('user modules', function(done) {
-    var authToken;
-    before(function(done) {
-      request
-        .post('/auth/login')
-        .send({
-          account: account,
-          password: password
-        })
-        .end(function(err, res) {
-          should.not.exist(err);
-          var rs = JSON.parse(res.text);
-          rs.should.containEql({ status: 'OK' });
-          authToken = new Buffer(`auth:${_.get(rs, 'results.tokens')}`).toString('base64');
-          done();
-        });
+test('GET /account should return user info', function(done) {
+  request
+    .get('/account')
+    .set('Authorization', `Basic ${'xxx'}`)
+    .end((err, res) => {
+      expect(err).toBe(null);
+      done();
     });
-
-    it('should get account info successful', function(done) {
-      request
-        .get(`/account`)
-        .set('Authorization', `Basic ${authToken}`)
-        .send()
-        .end(function(err, res) {
-          should.not.exist(err);
-          res.status.should.equal(200);
-          var rs = JSON.parse(res.text);
-          rs.should.have.properties('account');
-          rs.account.should.have.properties(['email', 'id', 'linkedProviders', 'name']);
-          done();
-        });
-    });
-  });
 });

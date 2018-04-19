@@ -5,6 +5,8 @@ const router = new Router({
   prefix: '/account'
 });
 
+router.get('/');
+
 module.exports = {
   router
 };
