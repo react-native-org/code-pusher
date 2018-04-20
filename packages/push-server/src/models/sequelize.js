@@ -15,7 +15,7 @@ const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.p
     dbConfig.pool
   ),
   // http://docs.sequelizejs.com/manual/tutorial/querying.html#operators
-  operatorsAliases: false
+  operatorsAliases: true
 });
 
 module.exports = {
