@@ -1,4 +1,4 @@
-const { UserTokenModel, UserModel, sequelize } = require('../models');
+const { UserTokenModel, UserModel, sequelize, DataStatus } = require('../models');
 const { tokenStore, sqlMap } = require('../common');
 
 class AccountBiz {
@@ -15,11 +15,22 @@ class AccountBiz {
   async setUser(ctx, next) {
     const token = ctx.headers['authorization'];
     if (token) {
-      // 从TokenStore抓取数据
-      let user = await tokenStore.get(token);
-      // 从DB抓一次
-      if (!user) {
-        const results = await sequelize.query('', { type: sequelize.QueryTypes.SELECT });
+      const [authType, tokenValue] = String(token).split(' ');
+      let user;
+      // 来自code-push-cli的请求，从DB抓取
+      if (authType === 'Bearer') {
+        const results = await sequelize.query(sqlMap.GET_USER_BY_BEARER_TOKEN, {
+          type: sequelize.QueryTypes.SELECT,
+          replacements: {
+            token: tokenValue,
+            status: DataStatus.Active,
+            expiresDate: Date.now()
+          }
+        });
+        user = results[0] || null;
+      } else if (authType === 'Basic') {
+        // 来自管理平台的请求，从TokenStore抓取
+        user = await tokenStore.get(tokenValue);
       }
       ctx.state.user = user;
     }
@@ -45,7 +56,16 @@ class AccountBiz {
    * @param {*} ctx
    */
   async getAccountInfoByToken(ctx) {
-    console.log('');
+    const user = ctx.state.user;
+    const body = {
+      account: {
+        email: user.email,
+        id: user.id,
+        linkedProviders: [],
+        name: user.username
+      }
+    };
+    ctx.body = body;
   }
 }
 
