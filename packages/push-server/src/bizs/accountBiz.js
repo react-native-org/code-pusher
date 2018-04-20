@@ -5,6 +5,7 @@ class AccountBiz {
   constructor() {
     this.getAccountInfoByToken = this.getAccountInfoByToken.bind(this);
     this.checkUserExists = this.checkUserExists.bind(this);
+    this.getUserIsAuthenticated = this.getUserIsAuthenticated.bind(this);
   }
 
   /**
@@ -66,6 +67,16 @@ class AccountBiz {
       }
     };
     ctx.body = body;
+  }
+
+  /**
+   * 返回用户已登录
+   * @param {*} ctx
+   */
+  async getUserIsAuthenticated(ctx) {
+    ctx.body = {
+      authenticated: true
+    };
   }
 }
 

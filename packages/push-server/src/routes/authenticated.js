@@ -1,12 +1,12 @@
 const Router = require('koa-router');
 const config = require('../config');
-const { userBiz } = require('../bizs');
+const { accountBiz } = require('../bizs');
 
 const router = new Router({
   prefix: `/authenticated`
 });
 
-router.get('/', userBiz.getUserIsAuthenticated);
+router.get('/', accountBiz.checkUserExists, accountBiz.getUserIsAuthenticated);
 
 module.exports = {
   router

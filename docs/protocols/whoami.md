@@ -4,9 +4,9 @@
 whoami  Display the account info for the current login session
 ```
 
-## logout
+## whoami
 
-退出登录 ：`code-push whoami`
+获取用户信息 ：`code-push whoami`
 
 ```
 GET /account HTTP/1.1
