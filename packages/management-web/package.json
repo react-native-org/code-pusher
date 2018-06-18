@@ -32,8 +32,10 @@
     "eslint": "^4.19.1",
     "eslint-plugin-react": "^7.9.1",
     "koa": "^2.5.1",
+    "react-app-rewire-hot-loader": "^1.0.1",
     "react-app-rewire-less": "^2.1.1",
     "react-app-rewired": "^1.5.2",
+    "react-hot-loader": "^4.3.3",
     "react-scripts": "^1.1.4"
   },
   "importSort": {
