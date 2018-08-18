@@ -1,3 +1,5 @@
 const util = require('./util');
 
-module.exports = { util };
+module.exports = {
+  util
+};

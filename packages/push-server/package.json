@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "supervisor src/index.js",
     "start": "npm run dev",
-    "dev": "fast-koa dev",
+    "dev2": "fast-koa dev",
     "build": "fast-koa build",
     "test": "jest",
     "test:watch": "jest --watchAll",
@@ -15,16 +16,22 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.16.3",
     "fast-koa": "0.0.1",
     "lodash": "^4.17.5",
+    "log4js": "^3.0.5",
     "mysql2": "^1.5.3",
-    "sequelize": "^4.37.6"
+    "sequelize": "^4.37.6",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "@types/jest": "^22.2.3",
     "fast-koa-cli": "0.0.2",
     "jest": "^22.4.3",
-    "supertest": "^3.0.0"
+    "supertest": "^3.0.0",
+    "supervisor": "^0.12.0"
   },
   "importSort": {
     ".js, .jsx, .es6, .es,": {
