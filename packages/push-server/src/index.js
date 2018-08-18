@@ -45,7 +45,7 @@ var server = http.createServer(app);
 /**
  * Listen on provided port, on all network interfaces.
  */
-var models = require('../models');
+var models = require('./models');
 models.Versions.findOne({where:{type:1}})
 .then(function(v){
     if (!v || v.get('version') != '0.2.15') {

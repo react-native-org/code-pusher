@@ -8,7 +8,8 @@
     "start": "npm run dev",
     "dev2": "fast-koa dev",
     "build": "fast-koa build",
-    "test": "jest",
+    "test": "SET NODE_ENV=test && SET CONFIG_FILE=src/config/config.test.js && mocha test/api/init",
+    "jest": "jest",
     "test:watch": "jest --watchAll",
     "coverage": "jest --coverage"
   },
@@ -19,17 +20,26 @@
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.3",
     "express": "^4.16.3",
+    "extract-zip": "^1.6.7",
     "fast-koa": "0.0.1",
+    "fs-extra": "^7.0.0",
     "lodash": "^4.17.5",
     "log4js": "^3.0.5",
     "mysql2": "^1.5.3",
+    "nodemailer": "^4.6.8",
+    "qiniu": "^7.2.1",
+    "redis": "^2.8.0",
     "sequelize": "^4.37.6",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "yazl": "^2.4.3"
   },
   "devDependencies": {
     "@types/jest": "^22.2.3",
     "fast-koa-cli": "0.0.2",
     "jest": "^22.4.3",
+    "make": "^0.8.1",
+    "mocha": "^5.2.0",
+    "should": "^13.2.3",
     "supertest": "^3.0.0",
     "supervisor": "^0.12.0"
   },
