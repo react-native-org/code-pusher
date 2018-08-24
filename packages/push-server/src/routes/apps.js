@@ -15,13 +15,10 @@ var config    = require('../core/config');
 const REGEX = /^(\w+)(-android|-ios)$/;
 const REGEX_ANDROID = /^(\w+)(-android)$/;
 const REGEX_IOS = /^(\w+)(-ios)$/;
-const OLD_REGEX_ANDROID = /^(android_)/;
-const OLD_REGEX_IOS = /^(ios_)/;
 var log4js = require('log4js');
 var log = log4js.getLogger("cps:apps");
 
-router.get('/',
-  middleware.checkToken, (req, res, next) => {
+router.get('/', middleware.checkToken, (req, res, next) => {
   var uid = req.users.id;
   var appManager = new AppManager();
   appManager.listApps(uid)
@@ -270,17 +267,7 @@ router.post('/:appName/deployments/:deploymentName/release',
   var packageManager = new PackageManager();
   accountManager.collaboratorCan(uid, appName)
   .then((col) => {
-    var pubType = '';
-    log.debug(`check publish type`);
-    if (REGEX_ANDROID.test(appName)) {
-      pubType = 'android';
-    } else if (REGEX_IOS.test(appName)) {
-      pubType = 'ios';
-    } else {
-      log.debug(`you have to rename app name, eg. Demo-android Demo-ios`);
-      throw new AppError.AppError(`you have to rename app name, eg. Demo-android Demo-ios`);
-    }
-    log.debug(`publish type is ${pubType}`);
+    log.debug(col);
     return deployments.findDeloymentByName(deploymentName, col.appid)
     .then((deploymentInfo) => {
       if (_.isEmpty(deploymentInfo)) {
@@ -289,7 +276,12 @@ router.post('/:appName/deployments/:deploymentName/release',
       }
       return packageManager.parseReqFile(req)
       .then((data) => {
-        return packageManager.releasePackage(deploymentInfo.id, data.packageInfo, data.package.type, data.package.path, uid, pubType)
+        if (data.package.type != "application/zip") {
+          log.debug(`upload file type is invlidate`, data.package);
+          throw new AppError.AppError("upload file type is invalidate");
+        }
+        log.debug('packageInfo:', data.packageInfo);
+        return packageManager.releasePackage(deploymentInfo.appid, deploymentInfo.id, data.packageInfo, data.package.path, uid)
         .finally(() => {
           common.deleteFolderSync(data.package.path);
         });
@@ -317,7 +309,7 @@ router.post('/:appName/deployments/:deploymentName/release',
       });
     });
   })
-  .then((data) => {
+  .then(() => {
     res.send('{"msg": "succeed"}');
   })
   .catch((e) => {
@@ -331,12 +323,13 @@ router.post('/:appName/deployments/:deploymentName/release',
 
 router.patch('/:appName/deployments/:deploymentName/release',
   middleware.checkToken, (req, res, next) => {
-    return res.status(406).send('Not supported currently');
+    log.debug('req.body', req.body);
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
     var uid = req.users.id;
     var deployments = new Deployments();
     var packageManager = new PackageManager();
+    var label = _.get(req, 'body.packageInfo.label');
     accountManager.collaboratorCan(uid, appName)
     .then((col) => {
       return deployments.findDeloymentByName(deploymentName, col.appid)
@@ -344,9 +337,35 @@ router.patch('/:appName/deployments/:deploymentName/release',
         if (_.isEmpty(deploymentInfo)) {
           throw new AppError.AppError("does not find the deployment");
         }
-        var label = deploymentInfo.label;
-        var deploymentVersionId = deploymentInfo.last_deployment_version_id;
-        return packageManager.modifyReleasePackage(deploymentInfo.id, deploymentVersionId, _.get(req, 'body.packageInfo'));
+        if (label) {
+          return packageManager.findPackageInfoByDeploymentIdAndLabel(deploymentInfo.id, label)
+          .then((data)=>{
+            return [deploymentInfo, data];
+          });
+        } else {
+          var deploymentVersionId = deploymentInfo.last_deployment_version_id;
+          return packageManager.findLatestPackageInfoByDeployVersion(deploymentVersionId)
+          .then((data)=>{
+            return [deploymentInfo, data];
+          });;
+        }
+      })
+      .spread((deploymentInfo, packageInfo)=>{
+        if (!packageInfo) {
+          throw new AppError.AppError("does not find the packageInfo");
+        }
+        return packageManager.modifyReleasePackage(packageInfo.id, _.get(req, 'body.packageInfo'))
+        .then(()=>{
+          //clear cache if exists.
+          if (_.get(config, 'common.updateCheckCache', false) !== false) {
+            Promise.delay(2500)
+            .then(() => {
+              var ClientManager = require('../core/services/client-manager');
+              var clientManager = new ClientManager();
+              clientManager.clearUpdateCheckCache(deploymentInfo.deployment_key, '*', '*', '*');
+            });
+          }
+        });
       });
     }).then((data) => {
       res.send("");
@@ -360,8 +379,10 @@ router.patch('/:appName/deployments/:deploymentName/release',
     });
 });
 
+
 router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeploymentName',
   middleware.checkToken, (req, res, next) => {
+  log.debug('req.body:', req.body);
   var appName = _.trim(req.params.appName);
   var sourceDeploymentName = _.trim(req.params.sourceDeploymentName);
   var destDeploymentName = _.trim(req.params.destDeploymentName);
@@ -394,7 +415,7 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
       return [sourceDeploymentInfo.id, destDeploymentInfo.id];
     })
     .spread((sourceDeploymentId, destDeploymentId) => {
-      return packageManager.promotePackage(sourceDeploymentId, destDeploymentId, uid);
+      return packageManager.promotePackage(sourceDeploymentId, destDeploymentId, req.body);
     });
   })
   .then((packages) => {
@@ -407,10 +428,10 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
         });
       });
     }
-    return null;
+    return packages;
   })
-  .then(() => {
-     res.send('ok');
+  .then((packages) => {
+     res.send({package:packages});
   })
   .catch((e) => {
     if (e instanceof AppError.AppError) {
@@ -584,17 +605,6 @@ router.patch('/:appName',
     var appManager = new AppManager();
     return accountManager.ownerCan(uid, appName)
     .then((col) => {
-      if (REGEX_ANDROID.test(appName) || OLD_REGEX_ANDROID.test(appName)) {
-        if (!REGEX_ANDROID.test(newAppName)) {
-          throw new AppError.AppError(`new appName have to point -android suffix! eg. Demo-android`);
-        }
-      } else if (REGEX_IOS.test(appName) || OLD_REGEX_IOS.test(appName)) {
-        if (!REGEX_IOS.test(newAppName)) {
-          throw new AppError.AppError(`new appName have to point -ios suffix! eg. Demo-ios`);
-        }
-      } else {
-        throw new AppError.AppError(`appName have to point -android or -ios suffix! eg. ${appName}-android ${appName}-ios`);
-      }
       return appManager.findAppByName(uid, newAppName)
       .then((appInfo) => {
         if (!_.isEmpty(appInfo)){
@@ -648,21 +658,42 @@ router.post('/:appName/transfer/:email',
 });
 
 router.post('/', middleware.checkToken, (req, res, next) => {
+  log.debug("addApp params:",req.body);
+  var constName = require('../core/const');
   var appName = req.body.name;
-  var uid = req.users.id;
-  var appManager = new AppManager();
   if (_.isEmpty(appName)) {
     return res.status(406).send("Please input name!");
   }
+  var osName = _.toLower(req.body.os);
+  var os;
+  if (osName == _.toLower(constName.IOS_NAME)) {
+    os = constName.IOS;
+  } else if (osName == _.toLower(constName.ANDROID_NAME)) {
+    os = constName.ANDROID;
+  } else if (osName == _.toLower(constName.WINDOWS_NAME)) {
+    os = constName.WINDOWS;
+  } else {
+    return res.status(406).send("Please input os [iOS|Android|Windows]!");
+  }
+  var platformName = _.toLower(req.body.platform);
+  var platform;
+  if (platformName == _.toLower(constName.REACT_NATIVE_NAME)) {
+    platform = constName.REACT_NATIVE;
+  } else if (platformName == _.toLower(constName.CORDOVA_NAME)) {
+    platform = constName.CORDOVA;
+  } else {
+    return res.status(406).send("Please input platform [React-Native|Cordova]!");
+  }
+  var manuallyProvisionDeployments = req.body.manuallyProvisionDeployments;
+  var uid = req.users.id;
+  var appManager = new AppManager();
+
   appManager.findAppByName(uid, appName)
   .then((appInfo) => {
     if (!_.isEmpty(appInfo)){
       throw new AppError.AppError(appName + " Exist!");
     }
-    if (!REGEX.test(appName)) {
-      throw new AppError.AppError(`appName have to point -android or -ios suffix! eg. ${appName}-android ${appName}-ios`);
-    }
-    return appManager.addApp(uid, appName, req.users.identical)
+    return appManager.addApp(uid, appName, os, platform, req.users.identical)
     .then(() => {
       return {name: appName, collaborators: {[req.users.email]: {permission: "Owner"}}};
     });

@@ -13,8 +13,8 @@ describe('api/apps/apps.test.js', function() {
   var authToken;
   var machineName = `Login-${Math.random()}`;
   var friendlyName = `Login-${Math.random()}`;
-  var appName = 'test-ios';
-  var newAppName = 'newtest-ios';
+  var appName = 'test';
+  var newAppName = 'newtest';
   var bearerToken;
   var testDeployment = 'test';
   var newTestDeployment = 'newtest';
@@ -38,14 +38,14 @@ describe('api/apps/apps.test.js', function() {
     it('should create accessKeys successful', function(done) {
       request.post(`/accessKeys`)
       .set('Authorization', `Basic ${authToken}`)
-      .send({createdBy: machineName, friendlyName: friendlyName, isSession: true, ttl: 30*24*60*60})
+      .send({createdBy: machineName, friendlyName: friendlyName, ttl: 30*24*60*60})
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(200);
         var rs = JSON.parse(res.text);
         rs.should.have.properties('accessKey');
         rs.accessKey.should.have.properties(['name', 'createdTime', 'createdBy',
-          'expires', 'isSession', 'description', 'friendlyName']);
+          'expires', 'description', 'friendlyName']);
         bearerToken = _.get(rs, 'accessKey.name');
         done();
       });
@@ -65,23 +65,10 @@ describe('api/apps/apps.test.js', function() {
       });
     });
 
-    it('should not add apps successful when appName is invalid', function(done) {
-      var appName = 'test';
-      request.post(`/apps`)
-      .set('Authorization', `Bearer ${bearerToken}`)
-      .send({name: appName})
-      .end(function(err, res) {
-        should.not.exist(err);
-        res.status.should.equal(406);
-        res.text.should.equal(`appName have to point -android or -ios suffix! eg. ${appName}-android ${appName}-ios`);
-        done();
-      });
-    });
-
     it('should add apps successful', function(done) {
       request.post(`/apps`)
       .set('Authorization', `Bearer ${bearerToken}`)
-      .send({name: appName})
+      .send({name: appName, os:'iOS', platform:'React-Native'})
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(200);
@@ -95,7 +82,7 @@ describe('api/apps/apps.test.js', function() {
     it('should not add apps successful when appName exists', function(done) {
       request.post(`/apps`)
       .set('Authorization', `Bearer ${bearerToken}`)
-      .send({name: appName})
+      .send({name: appName, os:'iOS', platform:'React-Native'})
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(406);
@@ -425,19 +412,6 @@ describe('api/apps/apps.test.js', function() {
         should.not.exist(err);
         res.status.should.equal(406);
         res.text.should.equal(`${appName} Exist!`);
-        done();
-      });
-    });
-
-    it(`should not rename apps successful when new name invalid`, function(done) {
-      var newAppName = 'newtest';
-      request.patch(`/apps/${appName}`)
-      .set('Authorization', `Bearer ${bearerToken}`)
-      .send({name: newAppName})
-      .end(function(err, res) {
-        should.not.exist(err);
-        res.status.should.equal(406);
-        res.text.should.equal(`new appName have to point -ios suffix! eg. Demo-ios`);
         done();
       });
     });

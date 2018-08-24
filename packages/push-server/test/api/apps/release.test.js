@@ -35,14 +35,14 @@ describe('api/apps/release.test.js', function() {
     it('should create accessKeys successful', function(done) {
       request.post(`/accessKeys`)
       .set('Authorization', `Basic ${authToken}`)
-      .send({createdBy: machineName, friendlyName: friendlyName, isSession: true, ttl: 30*24*60*60})
+      .send({createdBy: machineName, friendlyName: friendlyName, ttl: 30*24*60*60})
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(200);
         var rs = JSON.parse(res.text);
         rs.should.have.properties('accessKey');
         rs.accessKey.should.have.properties(['name', 'createdTime', 'createdBy',
-          'expires', 'isSession', 'description', 'friendlyName']);
+          'expires', 'description', 'friendlyName']);
         bearerToken = _.get(rs, 'accessKey.name');
         done();
       });
@@ -53,7 +53,7 @@ describe('api/apps/release.test.js', function() {
     it('should add apps successful', function(done) {
       request.post(`/apps`)
       .set('Authorization', `Bearer ${bearerToken}`)
-      .send({name: appName})
+      .send({name: appName, os:'iOS', platform:'React-Native'})
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(200);
@@ -99,7 +99,6 @@ describe('api/apps/release.test.js', function() {
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
-        should.not.exist(err);
         res.status.should.equal(200);
         done();
       });

@@ -8,10 +8,10 @@ var log4js = require('log4js');
 var http = require('http');
 var validator = require('validator')
 var _ = require('lodash')
-var config = require('./config/config');
+var config = require('./core/config');
 log4js.configure(_.get(config, 'log4js', {
-    appenders: {console: { type: 'console'}},
-    categories : { default: { appenders: ['console'], level: 'info' }}
+  appenders: {console: { type: 'console'}},
+  categories : { default: { appenders: ['console'], level: 'info' }}
 }));
 var log = log4js.getLogger("startup")
 
@@ -28,8 +28,8 @@ var host = null;
 if (process.env.HOST) {
   log.debug('process.env.HOST '+ process.env.HOST);
   if (validator.isIP(process.env.HOST)) {
-      log.trace(process.env.HOST + ' valid');
-      host = process.env.HOST;
+    log.trace(process.env.HOST + ' valid');
+    host = process.env.HOST;
   } else {
     log.warn('process.env.HOST '+ process.env.HOST + ' invalid, use 0.0.0.0 instead');
   }
@@ -47,23 +47,23 @@ var server = http.createServer(app);
  */
 var models = require('./models');
 models.Versions.findOne({where:{type:1}})
-.then(function(v){
-    if (!v || v.get('version') != '0.2.15') {
-        throw new Error(`Please upgrade your database. usage bin/db upgrade or code-push-server-db upgrade`);
+  .then(function(v){
+    if (!v || v.get('version') != '0.4.0') {
+      throw new Error(`Please upgrade your database. usage bin/db upgrade or code-push-server-db upgrade`);
     }
     server.listen(port, host);
     server.on('error', onError);
     server.on('listening', onListening);
     return;
-})
-.catch(function(e){
+  })
+  .catch(function(e){
     if (_.startsWith(e.message, 'ER_NO_SUCH_TABLE')) {
-        log.error(new Error(`Please upgrade your database. usage bin/db upgrade or code-push-server-db upgrade`));
+      log.error(new Error(`Please upgrade your database. usage bin/db upgrade or code-push-server-db upgrade`));
     } else {
-        log.error(e);
+      log.error(e);
     }
     process.exit(1);
-});
+  });
 
 /**
  * Normalize a port into a number, string, or false.

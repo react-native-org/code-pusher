@@ -21,7 +21,8 @@ proto.listCollaborators = function (appId) {
     }, []);
   })
   .then((coInfo) => {
-    return models.Users.findAll({where: {id: {in: coInfo.uids}}})
+    var Sequelize = require('sequelize');
+    return models.Users.findAll({where: {id: {[Sequelize.Op.in]: coInfo.uids}}})
     .then((data2) => {
       return _.reduce(data2, function (result, value, key) {
         var permission = "";

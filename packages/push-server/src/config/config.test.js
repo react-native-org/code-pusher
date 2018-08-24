@@ -9,7 +9,8 @@ config.test = {
     host: "127.0.0.1",
     port: 3306,
     dialect: "mysql",
-    logging: false
+    logging: false,
+    operatorsAliases: false,
   },
   local: {
     storageDir: os.tmpdir(),
@@ -24,7 +25,8 @@ config.test = {
     diffNums: 3,
     dataDir: os.tmpdir(),
     storageType: "local",
-    updateCheckCache: true
+    updateCheckCache: true,
+    rolloutClientUniqueIdCache: false,
   },
   smtpConfig: false,
   redis: {

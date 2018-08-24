@@ -30,14 +30,14 @@ describe('api/accessKeys/accessKeys.test.js', function() {
     it('should create accessKeys successful', function(done) {
       request.post(`/accessKeys`)
       .set('Authorization', `Basic ${authToken}`)
-      .send({createdBy: 'tablee', friendlyName: friendlyName, isSession: false, ttl: 30*24*60*60})
+      .send({createdBy: 'tablee', friendlyName: friendlyName, ttl: 30*24*60*60})
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(200);
         var rs = JSON.parse(res.text);
         rs.should.have.properties('accessKey');
         rs.accessKey.should.have.properties(['name', 'createdTime', 'createdBy',
-          'expires', 'isSession', 'description', 'friendlyName']);
+          'expires', 'description', 'friendlyName']);
         done();
       });
     });
@@ -45,7 +45,7 @@ describe('api/accessKeys/accessKeys.test.js', function() {
     it('should not create accessKeys successful when friendlyName exist', function(done) {
       request.post(`/accessKeys`)
       .set('Authorization', `Basic ${authToken}`)
-      .send({createdBy: 'tablee', friendlyName: friendlyName, isSession: true, ttl: 30*24*60*60})
+      .send({createdBy: 'tablee', friendlyName: friendlyName, ttl: 30*24*60*60})
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(406);
@@ -68,79 +68,8 @@ describe('api/accessKeys/accessKeys.test.js', function() {
         rs.accessKeys.should.be.an.instanceOf(Array);
         rs.accessKeys.should.matchEach(function(it) {
           return it.should.have.properties(['name', 'createdTime', 'createdBy',
-          'expires', 'isSession', 'description', 'friendlyName']);
+          'expires', 'description', 'friendlyName']);
         });
-        done();
-      });
-    });
-  });
-
-  describe('modify accessKeys', function(done) {
-    it('should modify accessKeys add ttl successful', function(done) {
-      request.patch(`/accessKeys/${encodeURI(friendlyName)}`)
-      .set('Authorization', `Basic ${authToken}`)
-      .send({ttl: 7*24*60*60*1000})
-      .end(function(err, res) {
-        should.not.exist(err);
-        res.status.should.equal(200);
-        var rs = JSON.parse(res.text);
-        rs.should.have.properties('accessKey');
-        rs.accessKey.should.have.properties(['name', 'createdTime', 'createdBy',
-          'expires', 'isSession', 'description', 'friendlyName']);
-        done();
-      });
-    });
-
-    it('should modify accessKeys substact ttl successful', function(done) {
-      request.patch(`/accessKeys/${encodeURI(friendlyName)}`)
-      .set('Authorization', `Basic ${authToken}`)
-      .send({ttl: -7*24*60*60*1000})
-      .end(function(err, res) {
-        should.not.exist(err);
-        res.status.should.equal(200);
-        var rs = JSON.parse(res.text);
-        rs.should.have.properties('accessKey');
-        rs.accessKey.should.have.properties(['name', 'createdTime', 'createdBy',
-          'expires', 'isSession', 'description', 'friendlyName']);
-        done();
-      });
-    });
-
-    it('should not modify accessKeys friendlyName successful when friendlyName exists', function(done) {
-      request.patch(`/accessKeys/${encodeURI(friendlyName)}`)
-      .set('Authorization', `Basic ${authToken}`)
-      .send({friendlyName: friendlyName})
-      .end(function(err, res) {
-        should.not.exist(err);
-        res.status.should.equal(406);
-        res.text.should.equal(`The access key "${friendlyName}"  already exists.`);
-        done();
-      });
-    });
-
-    it('should not modify accessKeys friendlyName successful when friendlyName invalid', function(done) {
-      request.patch(`/accessKeys/${encodeURI(newFriendlyName)}`)
-      .set('Authorization', `Basic ${authToken}`)
-      .send({friendlyName: newFriendlyName})
-      .end(function(err, res) {
-        should.not.exist(err);
-        res.status.should.equal(406);
-        res.text.should.equal(`The access key "${newFriendlyName}" does not exist.`);
-        done();
-      });
-    });
-
-    it('should modify accessKeys friendlyName successful', function(done) {
-      request.patch(`/accessKeys/${encodeURI(friendlyName)}`)
-      .set('Authorization', `Basic ${authToken}`)
-      .send({friendlyName: newFriendlyName})
-      .end(function(err, res) {
-        should.not.exist(err);
-        res.status.should.equal(200);
-        var rs = JSON.parse(res.text);
-        rs.should.have.properties('accessKey');
-        rs.accessKey.should.have.properties(['name', 'createdTime', 'createdBy',
-          'expires', 'isSession', 'description', 'friendlyName']);
         done();
       });
     });

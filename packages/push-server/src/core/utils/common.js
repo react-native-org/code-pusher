@@ -13,6 +13,61 @@ var log4js = require('log4js');
 var log = log4js.getLogger("cps:utils:common");
 module.exports = common;
 
+common.parseVersion = function (versionNo) {
+  var version = '0';
+  var data = null;
+  if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
+    // "1.2.3"
+    version = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
+  } else if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5})$/)) {
+    // "1.2"
+    version = data[1] + _.padStart(data[2], 5, '0') + _.padStart('0', 10, '0');
+  }
+  return version;
+};
+
+common.validatorVersion = function (versionNo) {
+  var flag = false;
+  var min = '0';
+  var max = '9999999999999999999';
+  var data = null;
+  if (versionNo == "*") {
+    // "*"
+    flag = true;
+  } else if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
+    // "1.2.3"
+    flag = true;
+    min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
+    max = data[1] + _.padStart(data[2], 5, '0') + _.padStart((parseInt(data[3])+1), 10, '0');
+  } else if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5})(\.\*){0,1}$/)) {
+    // "1.2" "1.2.*"
+    flag = true;
+    min = data[1] + _.padStart(data[2], 5, '0') + _.padStart('0', 10, '0');
+    max = data[1] + _.padStart((parseInt(data[2])+1), 5, '0') + _.padStart('0', 10, '0');
+  } else if (data = versionNo.match(/^\~([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
+    //"~1.2.3"
+    flag = true;
+    min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
+    max = data[1] + _.padStart((parseInt(data[2])+1), 5, '0') + _.padStart('0', 10, '0');
+  } else if (data = versionNo.match(/^\^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
+    //"^1.2.3"
+    flag = true;
+    min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[2], 10, '0');
+    max = _.toString((parseInt(data[1])+1)) + _.padStart(0, 5, '0') + _.padStart('0', 10, '0');
+  } else if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})-([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
+    // "1.2.3-1.2.7"
+    flag = true;
+    min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
+    max = data[4] + _.padStart(data[5], 5, '0') + _.padStart((parseInt(data[6])+1), 10, '0');
+  } else if (data = versionNo.match(/^>=([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})<([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
+    //">=1.2.3<1.2.7"
+    flag = true;
+    min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
+    max = data[4] + _.padStart(data[5], 5, '0') + _.padStart(data[6], 10, '0');
+  }
+  return [flag, min, max];
+};
+
 common.createFileFromRequest = function (url, filePath) {
   return new Promise((resolve, reject) => {
     fs.exists(filePath, function (exists) {
@@ -41,7 +96,7 @@ common.createFileFromRequest = function (url, filePath) {
       }
     });
   });
-}
+};
 
 common.move = function (sourceDst, targertDst) {
   return new Promise((resolve, reject) => {

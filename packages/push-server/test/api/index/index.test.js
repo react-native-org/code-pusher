@@ -117,7 +117,7 @@ describe('api/index/index.test.js', function() {
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(404);
-        res.text.should.equal(`does not found deployment`);
+        res.text.should.equal(`Not found deployment, check deployment key is right.`);
         done();
       });
     });

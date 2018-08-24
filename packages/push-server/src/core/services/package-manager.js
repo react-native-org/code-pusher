@@ -12,6 +12,7 @@ var common = require('../utils/common');
 var os = require('os');
 var path = require('path');
 var AppError = require('../app-error');
+var constConfig = require('../const');
 var log4js = require('log4js');
 var log = log4js.getLogger("cps:PackageManager");
 
@@ -23,8 +24,24 @@ var proto = module.exports = function (){
   return PackageManager;
 };
 
-proto.getMetricsbyPackageId= function(packageId) {
+proto.getMetricsbyPackageId = function(packageId) {
   return models.PackagesMetrics.findOne({where: {package_id: packageId}});
+}
+
+proto.findPackageInfoByDeploymentIdAndLabel = function (deploymentId, label) {
+  return models.Packages.findOne({where: {deployment_id: deploymentId, label:label}});
+}
+
+proto.findLatestPackageInfoByDeployVersion = function (deploymentsVersionsId) {
+    return models.DeploymentsVersions.findById(deploymentsVersionsId)
+    .then((deploymentsVersions)=>{
+        if (!deploymentsVersions || deploymentsVersions.current_package_id < 0) {
+          var e = new AppError.AppError("not found last packages");
+          log.debug(e);
+          throw e;
+        }
+        return models.Packages.findById(deploymentsVersions.current_package_id);
+    });
 }
 
 proto.parseReqFile = function (req) {
@@ -51,9 +68,9 @@ proto.parseReqFile = function (req) {
   });
 };
 
-proto.createDeploymentsVersionIfNotExist = function (deploymentId, appVersion, t) {
+proto.createDeploymentsVersionIfNotExist = function (deploymentId, appVersion, minVersion, maxVersion, t) {
   return models.DeploymentsVersions.findOrCreate({
-    where: {deployment_id: deploymentId, app_version: appVersion},
+    where: {deployment_id: deploymentId, app_version: appVersion, min_version:minVersion, max_version:maxVersion},
     defaults: {current_package_id: 0},
     transaction: t
   })
@@ -85,18 +102,20 @@ proto.isMatchPackageHash = function (packageId, packageHash) {
 };
 
 proto.createPackage = function (deploymentId, appVersion, packageHash, manifestHash, blobHash, params) {
-  var releaseMethod = params.releaseMethod || 'Upload';
+  var releaseMethod = params.releaseMethod || constConfig.RELEAS_EMETHOD_UPLOAD;
   var releaseUid = params.releaseUid || 0;
-  var isMandatory = params.isMandatory ? 1 : 0;
+  var isMandatory = params.isMandatory || 0;
   var size = params.size || 0;
+  var rollout = params.rollout || 100;
   var description = params.description || "";
   var originalLabel = params.originalLabel || "";
+  var isDisabled = params.isDisabled || 0;
   var originalDeployment = params.originalDeployment || "";
   var self = this;
   return models.Deployments.generateLabelId(deploymentId)
   .then((labelId) => {
     return models.sequelize.transaction((t) => {
-      return self.createDeploymentsVersionIfNotExist(deploymentId, appVersion, t)
+      return self.createDeploymentsVersionIfNotExist(deploymentId, appVersion, params.min_version, params.max_version, t)
       .then((deploymentsVersions) => {
         return models.Packages.create({
           deployment_version_id: deploymentsVersions.id,
@@ -110,6 +129,8 @@ proto.createPackage = function (deploymentId, appVersion, packageHash, manifestH
           label: "v" + labelId,
           released_by: releaseUid,
           is_mandatory: isMandatory,
+          is_disabled: isDisabled,
+          rollout: rollout,
           original_label: originalLabel,
           original_deployment: originalDeployment
         },{transaction: t})
@@ -232,18 +253,19 @@ proto.createDiffPackagesByLastNums = function (packageId, num) {
     if (_.isEmpty(originalPackage)) {
       throw AppError.AppError('can\'t find Package');
     }
+    var Sequelize = require('sequelize');
     return Promise.all([
       models.Packages.findAll({
         where:{
           deployment_version_id: originalPackage.deployment_version_id,
-          id: {$lt: packageId}},
+          id: {[Sequelize.Op.lt]: packageId}},
           order: [['id','desc']],
           limit: num
       }),
       models.Packages.findAll({
         where:{
           deployment_version_id: originalPackage.deployment_version_id,
-          id: {$lt: packageId}},
+          id: {[Sequelize.Op.lt]: packageId}},
           order: [['id','asc']],
           limit: 2
       })
@@ -277,15 +299,18 @@ proto.createDiffPackages = function (originalPackage, destPackages) {
   .finally(() => common.deleteFolderSync(workDirectoryPath));
 }
 
-proto.releasePackage = function (deploymentId, packageInfo, fileType, filePath, releaseUid, pubType) {
+proto.releasePackage = function (appId, deploymentId, packageInfo, filePath, releaseUid) {
   var self = this;
   var appVersion = packageInfo.appVersion;
-  if (!/^([0-9.]+)$/.test(appVersion)) {
+  var versionInfo = common.validatorVersion(appVersion);
+  if (!versionInfo[0]) {
     log.debug(`releasePackage targetBinaryVersion ${appVersion} not support.`);
     return Promise.reject(new AppError.AppError(`targetBinaryVersion ${appVersion} not support.`))
   }
-  var description = packageInfo.description;
-  var isMandatory = packageInfo.isMandatory;
+  var description = packageInfo.description; //描述
+  var isDisabled = packageInfo.isDisabled; //是否立刻下载
+  var rollout = packageInfo.rollout; //灰度百分比
+  var isMandatory = packageInfo.isMandatory; //是否强制更新，无法跳过
   var tmpDir = os.tmpdir();
   var directoryPath = path.join(tmpDir, 'codepush_' + security.randToken(32));
   log.debug(`releasePackage generate an random dir path: ${directoryPath}`);
@@ -293,36 +318,23 @@ proto.releasePackage = function (deploymentId, packageInfo, fileType, filePath, 
     security.qetag(filePath),
     common.createEmptyFolder(directoryPath)
     .then(() => {
-      if (fileType == "application/zip") {
-        return common.unzipFile(filePath, directoryPath)
-      } else {
-        log.debug(`上传的文件格式不对`);
-        throw new AppError.AppError("上传的文件格式不对");
-      }
+      return common.unzipFile(filePath, directoryPath)
     })
   ])
   .spread((blobHash) => {
     return security.uploadPackageType(directoryPath)
     .then((type) => {
-      if (type === 1) {
-        //android
-        if (pubType == 'ios' ) {
-          var e = new AppError.AppError("it must be publish it by ios type");
-          log.debug(e);
-          throw e;
+      return models.Apps.findById(appId).then((appInfo)=>{
+        if (type > 0 && appInfo.os > 0 && appInfo.os != type) {
+            var e = new AppError.AppError("it must be publish it by ios type");
+            log.debug(e);
+            throw e;
+        } else {
+          //不验证
+          log.debug(`Unknown package type:`, type, ',db os:', appInfo.os);
         }
-      } else if (type === 2) {
-        //ios
-        if (pubType == 'android'){
-          var e = new AppError.AppError("it must be publish it by android type");
-          log.debug(e);
-          throw e;
-        }
-      } else {
-        //不验证
-        log.debug(`Unknown package type`);
-      }
-      return blobHash;
+        return blobHash;
+      });
     });
   })
   .then((blobHash) => {
@@ -331,8 +343,11 @@ proto.releasePackage = function (deploymentId, packageInfo, fileType, filePath, 
     .then((dataCenter) => {
       var packageHash = dataCenter.packageHash;
       var manifestFile = dataCenter.manifestFilePath;
-      return self.createDeploymentsVersionIfNotExist(deploymentId, appVersion)
+      return models.DeploymentsVersions.findOne({where: {deployment_id: deploymentId, app_version:appVersion}})
       .then((deploymentsVersions) => {
+        if (!deploymentsVersions) {
+          return false;
+        }
         return self.isMatchPackageHash(deploymentsVersions.get('current_package_id'), packageHash);
       })
       .then((isExist) => {
@@ -355,90 +370,117 @@ proto.releasePackage = function (deploymentId, packageInfo, fileType, filePath, 
   .spread((packageHash, manifestHash, blobHash) => {
     var stats = fs.statSync(filePath);
     var params = {
-      releaseMethod: 'Upload',
+      releaseMethod: constConfig.RELEAS_EMETHOD_UPLOAD,
       releaseUid: releaseUid,
-      isMandatory: isMandatory,
+      isMandatory: isMandatory ? constConfig.IS_MANDATORY_YES : constConfig.IS_MANDATORY_NO,
+      isDisabled: isDisabled ? constConfig.IS_DISABLED_YES : constConfig.IS_DISABLED_NO,
+      rollout: rollout,
       size: stats.size,
-      description: description
+      description: description,
+      min_version: versionInfo[1],
+      max_version: versionInfo[2],
     }
     return self.createPackage(deploymentId, appVersion, packageHash, manifestHash, blobHash, params);
   })
   .finally(() => common.deleteFolderSync(directoryPath))
 };
 
-proto.modifyReleasePackage = function(deploymentId, deploymentVersionId, packageInfo) {
-  var appVersion = _.get(packageInfo, 'appVersion');
-  var description = _.get(packageInfo, 'description');
-  var isMandatory = _.get(packageInfo, 'isMandatory');
-  var isDisabled = _.get(packageInfo, 'isDisabled');
-  return models.DeploymentsVersions.findById(deploymentVersionId)
-  .then((deploymentsVersions) => {
+proto.modifyReleasePackage = function(packageId, params) {
+  var appVersion = _.get(params, 'appVersion');
+  var description = _.get(params, 'description');
+  var isMandatory = _.get(params, 'isMandatory');
+  var isDisabled = _.get(params, 'isDisabled');
+  var rollout = _.get(params, 'rollout');
+  return models.Packages.findById(packageId)
+  .then((packageInfo) => {
+    if (!packageInfo) {
+      throw new AppError.AppError(`packageInfo not found`);
+    }
+    var new_params = {
+      description: description || packageInfo.description,
+    };
+    if (_.isInteger(rollout)) {
+      new_params.rollout = rollout;
+    }
+    if (_.isBoolean(isMandatory)) {
+      new_params.is_mandatory = isMandatory ? constConfig.IS_MANDATORY_YES : constConfig.IS_MANDATORY_NO;
+    }
     if (_.isBoolean(isDisabled)) {
-      throw new AppError.AppError(`--disabled -x function is not implements`);
+      new_params.is_disabled = isDisabled ? constConfig.IS_DISABLED_YES : constConfig.IS_DISABLED_NO;
     }
-    if (!appVersion) {
-      if (!/^([0-9.]+)$/.test(appVersion)) {
-        return Promise.reject(new AppError.AppError(`targetBinaryVersion ${appVersion} not support.`))
-      }
-      return models.DeploymentsVersions.findOne({deployment_id: deploymentId, app_version: appVersion})
-      .then((d) => {
-        if (d) {
-          throw new AppError.AppError(`version ${appVersion} already exist`);
-        }
-      });
-    }
-    if(!deploymentsVersions) {
-      throw new AppError.AppError(`packages were not found in db`);
-    }
-  })
-  .then(() => {
-
+    return models.Packages.update(new_params,{where: {id: packageId}});
   });
 };
 
-proto.promotePackage = function (sourceDeploymentId, destDeploymentId, promoteUid) {
+proto.promotePackage = function (sourceDeploymentId, destDeploymentId, params) {
   var self = this;
+  var appVersion = params.appVersion;
   return models.Deployments.findById(sourceDeploymentId)
   .then((sourceDeployment) => {
-    var lastDeploymentVersionId = _.get(sourceDeployment, 'last_deployment_version_id', 0);
-    if (_.lte(lastDeploymentVersionId, 0)) {
-      throw new AppError.AppError('does not exist last_deployment_version_id.');
+    if (appVersion) {
+      return models.DeploymentsVersions.findOne({where: {deployment_id: sourceDeploymentId, app_version:appVersion}})
+      .then((deploymentsVersions)=>{return [sourceDeployment, deploymentsVersions]});
+    } else {
+      var lastDeploymentVersionId = _.get(sourceDeployment, 'last_deployment_version_id', 0);
+      if (_.lte(lastDeploymentVersionId, 0)) {
+        throw new AppError.AppError('does not exist last_deployment_version_id.');
+      }
+      return models.DeploymentsVersions.findById(lastDeploymentVersionId)
+      .then((deploymentsVersions)=>{return [sourceDeployment, deploymentsVersions]});
     }
-    return models.DeploymentsVersions.findById(lastDeploymentVersionId)
-    .then((deploymentsVersions) => {
-      var packageId = _.get(deploymentsVersions, 'current_package_id', 0);
-      if (_.lte(packageId, 0)) {
+  })
+  .spread((sourceDeployment, deploymentsVersions) => {
+    if (!deploymentsVersions) {
+      throw new AppError.AppError('does not exist deployment_version.');
+    }
+    log.debug('deploymentsVersions',deploymentsVersions);
+    var packageId = _.get(deploymentsVersions, 'current_package_id', 0);
+    if (_.lte(packageId, 0)) {
+      throw new AppError.AppError('does not exist packages.');
+    }
+    return models.Packages.findById(packageId)
+    .then((packages) => {
+      if (!packages) {
         throw new AppError.AppError('does not exist packages.');
       }
-      return models.Packages.findById(packageId)
-      .then((packages) => {
-        if (!packages) {
-          throw new AppError.AppError('does not exist packages.');
+      return models.DeploymentsVersions.findOne({where: {deployment_id: destDeploymentId, app_version:deploymentsVersions.app_version}})
+      .then((deploymentsVersions) => {
+        if (!deploymentsVersions) {
+          return false;
         }
-        return self.createDeploymentsVersionIfNotExist(destDeploymentId, deploymentsVersions.app_version)
-        .then((deploymentsVersions) => {
-          return self.isMatchPackageHash(deploymentsVersions.get('current_package_id'), packages.package_hash);
-        })
-        .then((isExist) => {
-          if (isExist){
-            throw new AppError.AppError("The uploaded package is identical to the contents of the specified deployment's current release.");
-          }
-        })
-        .then(() => [sourceDeployment, deploymentsVersions, packages]);
-      });
+        return self.isMatchPackageHash(deploymentsVersions.get('current_package_id'), packages.package_hash);
+      })
+      .then((isExist) => {
+        if (isExist){
+          throw new AppError.AppError("The uploaded package is identical to the contents of the specified deployment's current release.");
+        }
+      })
+      .then(() => [sourceDeployment, deploymentsVersions, packages]);
     });
   })
   .spread((sourceDeployment, deploymentsVersions, packages) => {
-    var params = {
-      releaseMethod: 'Promote',
-      releaseUid: promoteUid,
-      isMandatory: packages.is_mandatory == 1 ? true : false,
+    var create_params = {
+      releaseMethod: constConfig.RELEAS_EMETHOD_PROMOTE,
+      releaseUid: params.promoteUid || 0,
+      rollout: params.rollout || 100,
       size: packages.size,
-      description: packages.description,
+      description: params.description || packages.description,
       originalLabel: packages.label,
-      originalDeployment: sourceDeployment.name
+      originalDeployment: sourceDeployment.name,
+      min_version: deploymentsVersions.min_version,
+      max_version: deploymentsVersions.max_version,
     };
-    return self.createPackage(destDeploymentId, deploymentsVersions.app_version, packages.package_hash, packages.manifest_blob_url, packages.blob_url, params);
+    if (_.isBoolean(params.isMandatory)) {
+      create_params.isMandatory = params.isMandatory ? constConfig.IS_MANDATORY_YES : constConfig.IS_MANDATORY_NO;
+    } else {
+      create_params.isMandatory = packages.is_mandatory
+    }
+    if (_.isBoolean(params.isDisabled)) {
+      create_params.isMandatory = params.isDisabled ? constConfig.IS_DISABLED_YES : constConfig.IS_DISABLED_NO;
+    } else {
+      create_params.isMandatory = packages.is_disabled
+    }
+    return self.createPackage(destDeploymentId, deploymentsVersions.app_version, packages.package_hash, packages.manifest_blob_url, packages.blob_url, create_params);
   });
 };
 
@@ -477,11 +519,15 @@ proto.rollbackPackage = function (deploymentVersionId, targetLabel, rollbackUid)
       var params = {
         releaseMethod: 'Rollback',
         releaseUid: rollbackUid,
-        isMandatory: rollbackPackage.is_mandatory == 1 ? true : false,
+        isMandatory: rollbackPackage.is_mandatory,
+        isDisabled: rollbackPackage.is_disabled,
+        rollout: rollbackPackage.rollout,
         size: rollbackPackage.size,
         description: rollbackPackage.description,
         originalLabel: rollbackPackage.label,
-        originalDeployment: ''
+        originalDeployment: '',
+        min_version: deploymentsVersions.min_version,
+        max_version: deploymentsVersions.max_version,
       };
       return self.createPackage(deploymentsVersions.deployment_id,
         deploymentsVersions.app_version,
@@ -495,7 +541,11 @@ proto.rollbackPackage = function (deploymentVersionId, targetLabel, rollbackUid)
 }
 
 proto.getCanRollbackPackages = function (deploymentVersionId) {
+  var Sequelize = require('sequelize');
   return models.Packages.findAll({
-    where: {deployment_version_id: deploymentVersionId, release_method: {$in: ['Upload', 'Promote'] }}, order: [['id','desc']], limit: 2
+    where: {
+      deployment_version_id: deploymentVersionId,
+      release_method: {[Sequelize.Op.in]: [constConfig.RELEAS_EMETHOD_UPLOAD, constConfig.RELEAS_EMETHOD_PROMOTE] }
+    }, order: [['id','desc']], limit: 2
   });
 }

@@ -67,13 +67,11 @@ proto.getAllAccessKeyByUid = function (uid) {
   .then((tokens) => {
     return _.map(tokens, function(v){
       return {
-        id: v.id + "",
         name: '(hidden)',
         createdTime: parseInt(moment(v.created_at).format('x')),
         createdBy: v.created_by,
         expires: parseInt(moment(v.expires_at).format('x')),
         friendlyName: v.name,
-        isSession: v.is_session == 0 ? false : true,
         description: v.description,
       };
     });
@@ -86,13 +84,12 @@ proto.isExsitAccessKeyName = function (uid, friendlyName) {
   });
 };
 
-proto.createAccessKey = function (uid, newAccessKey, isSession, ttl, friendlyName, createdBy, description) {
+proto.createAccessKey = function (uid, newAccessKey, ttl, friendlyName, createdBy, description) {
   return models.UserTokens.create({
     uid: uid,
     name: friendlyName,
     tokens: newAccessKey,
     description: description,
-    is_session: isSession ? 1 : 0,
     created_by: createdBy,
     expires_at: moment().add(ttl/1000, 'seconds').format('YYYY-MM-DD HH:mm:ss'),
     created_at: moment().format('YYYY-MM-DD HH:mm:ss'),

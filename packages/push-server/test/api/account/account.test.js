@@ -35,7 +35,7 @@ describe('api/account/account.test.js', function() {
         res.status.should.equal(200);
         var rs = JSON.parse(res.text);
         rs.should.have.properties('account');
-        rs.account.should.have.properties(['email', 'id', 'linkedProviders', 'name']);
+        rs.account.should.have.properties(['email', 'linkedProviders', 'name']);
         done();
       });
     });

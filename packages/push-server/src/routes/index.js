@@ -5,6 +5,8 @@ var AppError = require('../core/app-error');
 var middleware = require('../core/middleware');
 var ClientManager = require('../core/services/client-manager');
 var _ = require('lodash');
+var log4js = require('log4js');
+var log = log4js.getLogger("cps:index");
 
 router.get('/', (req, res, next) => {
   res.render('index', { title: 'CodePushServer' });
@@ -39,9 +41,23 @@ router.get('/updateCheck', (req, res, next) => {
   var appVersion = _.get(req, "query.appVersion");
   var label = _.get(req, "query.label");
   var packageHash = _.get(req, "query.packageHash")
+  var clientUniqueId = _.get(req, "query.clientUniqueId")
   var clientManager = new ClientManager();
-  clientManager.updateCheckFromCache(deploymentKey, appVersion, label, packageHash)
+  log.debug('req.query', req.query);
+  clientManager.updateCheckFromCache(deploymentKey, appVersion, label, packageHash, clientUniqueId)
   .then((rs) => {
+    //灰度检测
+    return clientManager.chosenMan(rs.rollout, deploymentKey, appVersion, clientUniqueId)
+    .then((data)=>{
+        if (!data) {
+          rs.isAvailable = false;
+          return rs;
+        }
+        return rs;
+    });
+  })
+  .then((rs) => {
+    delete rs.rollout;
     res.send({"updateInfo":rs});
   })
   .catch((e) => {
@@ -54,6 +70,7 @@ router.get('/updateCheck', (req, res, next) => {
 });
 
 router.post('/reportStatus/download', (req, res) => {
+  log.debug('req.body', req.body);
   var clientUniqueId = _.get(req, "body.clientUniqueId");
   var label = _.get(req, "body.label");
   var deploymentKey = _.get(req, "body.deploymentKey");
@@ -68,6 +85,7 @@ router.post('/reportStatus/download', (req, res) => {
 });
 
 router.post('/reportStatus/deploy', (req, res) => {
+  log.debug('req.body', req.body);
   var clientUniqueId = _.get(req, "body.clientUniqueId");
   var label = _.get(req, "body.label");
   var deploymentKey = _.get(req, "body.deploymentKey");

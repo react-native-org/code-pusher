@@ -17,21 +17,24 @@ proto.findAppByName = function (uid, appName) {
   return models.Apps.findOne({where: {name: appName, uid: uid}});
 };
 
-proto.addApp = function (uid, appName, identical) {
+proto.addApp = function (uid, appName, os, platform, identical) {
   return models.sequelize.transaction((t) => {
     return models.Apps.create({
       name: appName,
-      uid: uid
+      uid: uid,
+      os: os,
+      platform: platform
     },{
       transaction: t
     })
     .then((apps) => {
+      var constName = require('../const');
       var appId = apps.id;
       var deployments = [];
       var deploymentKey = security.randToken(28) + identical;
       deployments.push({
         appid: appId,
-        name: 'Production',
+        name: constName.PRODUCTION,
         last_deployment_version_id: 0,
         label_id: 0,
         deployment_key: deploymentKey
@@ -39,7 +42,7 @@ proto.addApp = function (uid, appName, identical) {
       deploymentKey = security.randToken(28) + identical;
       deployments.push({
         appid: appId,
-        name: 'Staging',
+        name: constName.STAGING,
         last_deployment_version_id: 0,
         label_id: 0,
         deployment_key: deploymentKey
@@ -91,13 +94,27 @@ proto.listApps = function (uid) {
       return [];
     } else {
       var appIds = _.map(data, (v) => { return v.appid });
-      return models.Apps.findAll({where: {id: {in: appIds}}});
+      var Sequelize = require('sequelize');
+      return models.Apps.findAll({where: {id: {[Sequelize.Op.in]: appIds}}});
     }
   })
   .then((appInfos) => {
     var rs = Promise.map(_.values(appInfos), (v) => {
       return self.getAppDetailInfo(v, uid)
       .then((info) => {
+        var constName = require('../const');
+        if (info.os == constName.IOS) {
+          info.os = constName.IOS_NAME;
+        } else if (info.os == constName.ANDROID) {
+          info.os = constName.ANDROID_NAME;
+        } else if (info.os == constName.WINDOWS) {
+          info.os = constName.WINDOWS_NAME;
+        }
+        if (info.platform == constName.REACT_NATIVE) {
+          info.platform = constName.REACT_NATIVE_NAME;
+        } else if (info.platform == constName.CORDOVA) {
+          info.platform = constName.CORDOVA_NAME;
+        }
         return info;
       });
     });
@@ -128,7 +145,8 @@ proto.getAppDetailInfo  = function (appInfo, currentUid) {
       deployments: _.map(deploymentInfos, (item) => {
         return _.get(item, 'name');
       }),
-
+      os: appInfo.get('os'),
+      platform: appInfo.get('platform'),
       name: appInfo.get('name'),
       id: appInfo.get('id')
     });

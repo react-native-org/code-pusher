@@ -21,6 +21,8 @@ module.exports = function(sequelize, DataTypes) {
     original_deployment: DataTypes.STRING,
     released_by: DataTypes.STRING,
     is_mandatory: DataTypes.INTEGER(3),
+    is_disabled: DataTypes.INTEGER(3),
+    rollout: DataTypes.INTEGER(3),
     created_at: DataTypes.DATE,
     updated_at: DataTypes.DATE,
   }, {

@@ -3,12 +3,14 @@ CREATE TABLE `apps` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL DEFAULT '',
   `uid` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `os` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `platform` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_name` (`name`(12))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS `collaborators`;
 CREATE TABLE `collaborators` (
@@ -58,13 +60,17 @@ DROP TABLE IF EXISTS `deployments_versions`;
 CREATE TABLE `deployments_versions` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `deployment_id` int(11) unsigned NOT NULL DEFAULT '0',
-  `app_version` varchar(14) NOT NULL DEFAULT '',
+  `app_version` varchar(100) NOT NULL DEFAULT '',
   `current_package_id` int(10) unsigned NOT NULL DEFAULT '0',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `min_version` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `max_version` bigint(20) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `idx_did_appversion` (`deployment_id`,`app_version`)
+  KEY `idx_did_minversion` (`deployment_id`,`min_version`),
+  KEY `idx_did_maxversion` (`deployment_id`,`max_version`),
+  KEY `idx_did_appversion` (`deployment_id`,`app_version`(30))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS `packages`;
@@ -83,8 +89,10 @@ CREATE TABLE `packages` (
   `original_deployment` varchar(20) NOT NULL DEFAULT '',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_at` timestamp NULL DEFAULT NULL,
-  `released_by` bigint(20) unsigned NOT NULL,
+  `released_by` bigint(20) unsigned NOT NULL DEFAULT '0',
   `is_mandatory` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `is_disabled` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `rollout` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_deploymentid_label` (`deployment_id`,`label`(8)),
@@ -170,5 +178,26 @@ CREATE TABLE `versions` (
 LOCK TABLES `versions` WRITE;
 INSERT INTO `versions` (`id`, `type`, `version`)
 VALUES
-	(1,1,'0.2.15');
+	(1,1,'0.4.0');
 UNLOCK TABLES;
+
+DROP TABLE IF EXISTS `log_report_deploy`;
+CREATE TABLE `log_report_deploy` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `status` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `package_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `client_unique_id` varchar(100) NOT NULL DEFAULT '',
+  `previous_label` varchar(20) NOT NULL DEFAULT '',
+  `previous_deployment_key` varchar(64) NOT NULL DEFAULT '',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `log_report_download`;
+CREATE TABLE `log_report_download` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `package_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `client_unique_id` varchar(100) NOT NULL DEFAULT '',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

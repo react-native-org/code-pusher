@@ -17,8 +17,9 @@ var checkAuthToken = function (authToken) {
     if (_.isEmpty(users)) {
       throw new AppError.Unauthorized();
     }
+    var Sequelize = require('sequelize');
     return models.UserTokens.findOne({
-      where: {tokens: authToken, uid: users.id, expires_at: { gt: moment().format('YYYY-MM-DD HH:mm:ss') }}
+      where: {tokens: authToken, uid: users.id, expires_at: { [Sequelize.Op.gt]: moment().format('YYYY-MM-DD HH:mm:ss') }}
     })
     .then((tokenInfo) => {
       if (_.isEmpty(tokenInfo)){
