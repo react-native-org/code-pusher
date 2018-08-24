@@ -396,6 +396,36 @@ proto.modifyReleasePackage = function(packageId, params) {
     if (!packageInfo) {
       throw new AppError.AppError(`packageInfo not found`);
     }
+    if (!_.isNull(appVersion)) {
+       var versionInfo = common.validatorVersion(appVersion);
+       if (!versionInfo[0]) {
+          throw new AppError.AppError(`--targetBinaryVersion ${appVersion} not support.`);
+       }
+       return Promise.all([
+            models.DeploymentsVersions.findOne({where: {deployment_id:packageInfo.deployment_id, app_version:appVersion}}),
+            models.DeploymentsVersions.findById(packageInfo.deployment_version_id)
+        ])
+       .spread((v1, v2) => {
+          if (v1 && !_.eq(v1.id, v2.id)) {
+            log.debug(v1);
+            throw new AppError.AppError(`${appVersion} already exist.`);
+          }
+          if (!v2) {
+            throw new AppError.AppError(`packages not found.`);
+          }
+          return models.DeploymentsVersions.update({
+            app_version:appVersion,
+            min_version:versionInfo[1],
+            max_version:versionInfo[2]
+          },{where: {id:v2.id}});
+       })
+       .then(()=>{
+        return packageInfo
+       });
+    }
+    return packageInfo;
+  })
+  .then((packageInfo) => {
     var new_params = {
       description: description || packageInfo.description,
     };
@@ -412,75 +442,109 @@ proto.modifyReleasePackage = function(packageId, params) {
   });
 };
 
-proto.promotePackage = function (sourceDeploymentId, destDeploymentId, params) {
+proto.promotePackage = function (sourceDeploymentInfo, destDeploymentInfo, params) {
   var self = this;
-  var appVersion = params.appVersion;
-  return models.Deployments.findById(sourceDeploymentId)
-  .then((sourceDeployment) => {
-    if (appVersion) {
-      return models.DeploymentsVersions.findOne({where: {deployment_id: sourceDeploymentId, app_version:appVersion}})
-      .then((deploymentsVersions)=>{return [sourceDeployment, deploymentsVersions]});
+  var appVersion = _.get(params,'appVersion', null);
+  var label = _.get(params,'label', null);
+  return new Promise((resolve, reject) => {
+    if (label) {
+      return models.Packages.findOne({where: {deployment_id: sourceDeploymentInfo.id, label:label}})
+      .then((sourcePack)=>{
+        if (!sourcePack) {
+          throw new AppError.AppError('label does not exist.');
+        }
+        return models.DeploymentsVersions.findById(sourcePack.deployment_version_id)
+        .then((deploymentsVersions)=>{
+          if (!deploymentsVersions) {
+            throw new AppError.AppError('deploymentsVersions does not exist.');
+          }
+          resolve([sourcePack, deploymentsVersions]);
+        });
+      })
+      .catch((e) => {
+        reject(e);
+      });
     } else {
-      var lastDeploymentVersionId = _.get(sourceDeployment, 'last_deployment_version_id', 0);
+      var lastDeploymentVersionId = _.get(sourceDeploymentInfo, 'last_deployment_version_id', 0);
       if (_.lte(lastDeploymentVersionId, 0)) {
-        throw new AppError.AppError('does not exist last_deployment_version_id.');
+        throw new AppError.AppError(`does not exist last_deployment_version_id.`);
       }
       return models.DeploymentsVersions.findById(lastDeploymentVersionId)
-      .then((deploymentsVersions)=>{return [sourceDeployment, deploymentsVersions]});
+      .then((deploymentsVersions)=>{
+        var sourcePackId = _.get(deploymentsVersions, 'current_package_id', 0);
+        if (_.lte(sourcePackId, 0)) {
+          throw new AppError.AppError(`packageInfo not found.`);
+        }
+        return models.Packages.findById(sourcePackId)
+        .then((sourcePack) =>{
+          if (!sourcePack) {
+            throw new AppError.AppError(`packageInfo not found.`);
+          }
+          resolve([sourcePack, deploymentsVersions]);
+        });
+      })
+      .catch((e) => {
+        reject(e);
+      });
     }
   })
-  .spread((sourceDeployment, deploymentsVersions) => {
-    if (!deploymentsVersions) {
-      throw new AppError.AppError('does not exist deployment_version.');
-    }
+  .spread((sourcePack, deploymentsVersions)=>{
+    var appFinalVersion = appVersion || deploymentsVersions.app_version;
+    log.debug('sourcePack',sourcePack);
     log.debug('deploymentsVersions',deploymentsVersions);
-    var packageId = _.get(deploymentsVersions, 'current_package_id', 0);
-    if (_.lte(packageId, 0)) {
-      throw new AppError.AppError('does not exist packages.');
-    }
-    return models.Packages.findById(packageId)
-    .then((packages) => {
-      if (!packages) {
-        throw new AppError.AppError('does not exist packages.');
+    log.debug('appFinalVersion', appFinalVersion);
+    return models.DeploymentsVersions.findOne({where: {
+      deployment_id:destDeploymentInfo.id,
+      app_version: appFinalVersion,
+    }})
+    .then((destDeploymentsVersions)=>{
+      if (!destDeploymentsVersions) {
+        return false;
       }
-      return models.DeploymentsVersions.findOne({where: {deployment_id: destDeploymentId, app_version:deploymentsVersions.app_version}})
-      .then((deploymentsVersions) => {
-        if (!deploymentsVersions) {
-          return false;
-        }
-        return self.isMatchPackageHash(deploymentsVersions.get('current_package_id'), packages.package_hash);
-      })
-      .then((isExist) => {
-        if (isExist){
-          throw new AppError.AppError("The uploaded package is identical to the contents of the specified deployment's current release.");
-        }
-      })
-      .then(() => [sourceDeployment, deploymentsVersions, packages]);
+      return self.isMatchPackageHash(destDeploymentsVersions.get('current_package_id'), sourcePack.package_hash);
+    })
+    .then((isExist) => {
+      if (isExist){
+        throw new AppError.AppError("The uploaded package is identical to the contents of the specified deployment's current release.");
+      }
+      return [sourcePack, deploymentsVersions, appFinalVersion];
     });
   })
-  .spread((sourceDeployment, deploymentsVersions, packages) => {
+  .spread((sourcePack, deploymentsVersions, appFinalVersion) => {
+    var versionInfo = common.validatorVersion(appFinalVersion);
+    if (!versionInfo[0]) {
+      log.debug(`targetBinaryVersion ${appVersion} not support.`);
+      throw new AppError.AppError(`targetBinaryVersion ${appVersion} not support.`);
+    }
     var create_params = {
       releaseMethod: constConfig.RELEAS_EMETHOD_PROMOTE,
       releaseUid: params.promoteUid || 0,
       rollout: params.rollout || 100,
-      size: packages.size,
-      description: params.description || packages.description,
-      originalLabel: packages.label,
-      originalDeployment: sourceDeployment.name,
-      min_version: deploymentsVersions.min_version,
-      max_version: deploymentsVersions.max_version,
+      size: sourcePack.size,
+      description: params.description || sourcePack.description,
+      originalLabel: sourcePack.label,
+      originalDeployment: sourceDeploymentInfo.name,
+      min_version: versionInfo[1],
+      max_version: versionInfo[2],
     };
     if (_.isBoolean(params.isMandatory)) {
       create_params.isMandatory = params.isMandatory ? constConfig.IS_MANDATORY_YES : constConfig.IS_MANDATORY_NO;
     } else {
-      create_params.isMandatory = packages.is_mandatory
+      create_params.isMandatory = sourcePack.is_mandatory
     }
     if (_.isBoolean(params.isDisabled)) {
       create_params.isMandatory = params.isDisabled ? constConfig.IS_DISABLED_YES : constConfig.IS_DISABLED_NO;
     } else {
-      create_params.isMandatory = packages.is_disabled
+      create_params.isMandatory = sourcePack.is_disabled
     }
-    return self.createPackage(destDeploymentId, deploymentsVersions.app_version, packages.package_hash, packages.manifest_blob_url, packages.blob_url, create_params);
+    return self.createPackage(
+      destDeploymentInfo.id,
+      appFinalVersion,
+      sourcePack.package_hash,
+      sourcePack.manifest_blob_url,
+      sourcePack.blob_url,
+      create_params
+    );
   });
 };
 

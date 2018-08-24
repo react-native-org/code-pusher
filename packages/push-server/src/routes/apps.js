@@ -292,7 +292,7 @@ router.post('/:appName/deployments/:deploymentName/release',
           .then(() => {
             packageManager.createDiffPackagesByLastNums(packages.id, _.get(config, 'common.diffNums', 1))
             .catch((e) => {
-              console.error(e);
+              log.error(e);
             });
           });
         }
@@ -412,10 +412,12 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
           clientManager.clearUpdateCheckCache(destDeploymentInfo.deployment_key, '*', '*', '*');
         });
       }
-      return [sourceDeploymentInfo.id, destDeploymentInfo.id];
+      return [sourceDeploymentInfo, destDeploymentInfo];
     })
-    .spread((sourceDeploymentId, destDeploymentId) => {
-      return packageManager.promotePackage(sourceDeploymentId, destDeploymentId, req.body);
+    .spread((sourceDeploymentInfo, destDeploymentInfo) => {
+      var params = _.get(req.body, 'packageInfo', {});
+      _.set(params, 'promoteUid', uid);
+      return packageManager.promotePackage(sourceDeploymentInfo, destDeploymentInfo, params);
     });
   })
   .then((packages) => {
@@ -424,7 +426,7 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
       .then(() => {
         packageManager.createDiffPackagesByLastNums(packages.id, _.get(config, 'common.diffNums', 1))
         .catch((e) => {
-          console.log(e);
+          log.error(e);
         });
       });
     }

@@ -35,7 +35,7 @@ var checkAuthToken = function (authToken) {
 var checkAccessToken = function (accessToken) {
   return new Promise((resolve, reject) => {
     if (_.isEmpty(accessToken)) {
-      throw new AppError.Unauthorized();
+      return reject(new AppError.Unauthorized());
     }
     var config = require('../core/config');
     var tokenSecret = _.get(config, 'jwt.tokenSecret');
@@ -43,7 +43,7 @@ var checkAccessToken = function (accessToken) {
     try {
       var authData = jwt.verify(accessToken, tokenSecret);
     } catch (e) {
-      reject(new AppError.Unauthorized());
+      return reject(new AppError.Unauthorized());
     }
     var uid = _.get(authData, 'uid', null);
     var hash = _.get(authData, 'hash', null);
