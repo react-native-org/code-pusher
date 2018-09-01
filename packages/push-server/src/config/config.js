@@ -6,9 +6,9 @@ config.development = {
   // Config for database, only support mysql.
   db: {
     username: process.env.RDS_USERNAME || 'root',
-    password: process.env.RDS_PASSWORD || 'ecMysql01@newegg',
+    password: process.env.RDS_PASSWORD || '',
     database: process.env.DATA_BASE || 'codepush',
-    host: process.env.RDS_HOST || '10.16.89.135',
+    host: process.env.RDS_HOST || '127.0.0.1',
     port: process.env.RDS_PORT || 3306,
     dialect: 'mysql',
     logging: false,

@@ -21,8 +21,9 @@ var app = express();
 app.use(helmet());
 app.disable('x-powered-by');
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+// app.set('views', path.join(__dirname, 'views'));
+// app.set('view engine', 'pug');
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(log4js.connectLogger(log4js.getLogger("http"), {level: log4js.levels.INFO, nolog:'\\.gif|\\.jpg|\\.js|\\.css$' }));
 
@@ -84,7 +85,7 @@ if (app.get('env') === 'development') {
   app.use(function(req, res, next) {
     var err = new AppError.NotFound();
     res.status(err.status || 404);
-    res.render('error', {
+    res.json({
       message: err.message,
       error: err
     });
@@ -92,7 +93,7 @@ if (app.get('env') === 'development') {
   });
   app.use(function(err, req, res, next) {
     res.status(err.status || 500);
-    res.render('error', {
+    res.json({
       message: err.message,
       error: err
     });
