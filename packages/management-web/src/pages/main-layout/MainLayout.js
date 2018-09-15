@@ -1,11 +1,12 @@
 import './MainLayout.less';
 
 import { Icon, Layout, Menu } from 'antd';
-import { Link, Route, Switch } from 'react-router-dom';
 import React, { PureComponent } from 'react';
-
-import { bindSelf } from '../../utils';
+import { Link, Route, Switch } from 'react-router-dom';
+import Header  from './Header';
 import { config } from '../../config';
+import { bindSelf } from '../../utils';
+import { inject } from 'mobx-react';
 
 const menus = config.menus;
 
@@ -13,17 +14,18 @@ function isAbsolutePath(path) {
   return (path || '').indexOf('http') === 0;
 }
 
+@inject('store')
 export class MainLayout extends PureComponent {
   state = {
     menuCollapsed: false,
     defaultOpenKeys: this.getDefaultOpenKeys()
   };
 
-  componentWillMount() {
-    this._checkLoginState(this.props.isLogged);
+  UNSAFE_componentWillMount() {
+    this._checkLoginState(this.props.store.isLogged);
   }
-  componentWillReceiveProps(newProps) {
-    this._checkLoginState(newProps.isLogged);
+  UNSAFE_componentWillReceiveProps(newProps) {
+    this._checkLoginState(newProps.store.isLogged);
   }
 
   componentDidMount() {
@@ -123,6 +125,18 @@ export class MainLayout extends PureComponent {
   handleMenuCollapseChange() {
     this.setState({ menuCollapsed: !this.state.menuCollapsed });
   }
+  @bindSelf
+  handleNoticeVisibleChange() {
+    console.log('handleNoticeVisibleChange');
+  }
+
+  handleNoticeClear() {
+    console.log('handleNoticeClear');
+  }
+
+  handleMenuClick() {
+    console.log('handleMenuClick');
+  }
 
   render() {
     return (
@@ -141,13 +155,24 @@ export class MainLayout extends PureComponent {
           </Menu>
         </Layout.Sider>
         <Layout>
-          <Layout.Header>
-            <Icon
+          <Header
+            handleMenuCollapse={this.handleMenuCollapseChange}
+            {...this.props}
+            {...this.props.store}
+          />
+            {/* <Icon
               className="menu-collapse-icon"
               type={this.state.menuCollapsed ? 'menu-unfold' : 'menu-fold'}
               onClick={this.handleMenuCollapseChange}
-            />
-          </Layout.Header>
+            /> */}
+            {/* <Header
+              onCollapse={this.handleMenuCollapse}
+              onNoticeClear={this.handleNoticeClear}
+              onMenuClick={this.handleMenuClick}
+              onNoticeVisibleChange={this.handleNoticeVisibleChange}
+              {...this.props}
+              {...this.props.store}
+            /> */}
           <Layout.Content>
             <Switch>
               {this.props.routes.map((route, idx) => (

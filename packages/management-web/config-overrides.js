@@ -8,6 +8,7 @@ module.exports = function override(config, env) {
   config = rewireReactHotLoader(config, env);
   config = rewireLess.withLoaderOptions({
     // modifyVars: { '@primary-color': '#1DA57A' }
+    javascriptEnabled: true
   })(config, env);
   return config;
 };
