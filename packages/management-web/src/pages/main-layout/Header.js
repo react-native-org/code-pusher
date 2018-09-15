@@ -85,7 +85,6 @@ class HeaderView extends PureComponent {
     const { handleMenuCollapse, setting } = this.props;
     const { fixedHeader } = setting;
     const width = this.getHeadWidth();
-    console.log(styles, '---0styles')
     const HeaderDom = (
       <Header style={{ padding: 0, width }} className={fixedHeader ? styles.fixedHeader : ''}>
         <GlobalHeader
@@ -106,3 +105,4 @@ class HeaderView extends PureComponent {
 }
 
 export default HeaderView;
+
