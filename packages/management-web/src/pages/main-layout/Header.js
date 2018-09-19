@@ -1,8 +1,9 @@
+import './Header.less';
+
 import { Layout, message } from 'antd';
 import Animate from 'rc-animate';
 import React, { PureComponent } from 'react';
 import GlobalHeader from '../../components/globalHeader';
-import styles from './Header.less';
 
 const { Header } = Layout;
 
@@ -86,7 +87,7 @@ class HeaderView extends PureComponent {
     const { fixedHeader } = setting;
     const width = this.getHeadWidth();
     const HeaderDom = (
-      <Header style={{ padding: 0, width }} className={fixedHeader ? styles.fixedHeader : ''}>
+      <Header style={{ padding: 0, width }} className={fixedHeader ? fixedHeader : ''}>
         <GlobalHeader
           onCollapse={handleMenuCollapse}
           onNoticeClear={this.handleNoticeClear}

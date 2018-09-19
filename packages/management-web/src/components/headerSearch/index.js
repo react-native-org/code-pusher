@@ -1,10 +1,11 @@
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import { Input, Icon, AutoComplete } from 'antd';
+import './index.less';
+
+import { AutoComplete, Icon, Input } from 'antd';
 import classNames from 'classnames';
-import Debounce from 'lodash-decorators/debounce';
 import Bind from 'lodash-decorators/bind';
-import styles from './index.less';
+import Debounce from 'lodash-decorators/debounce';
+import PropTypes from 'prop-types';
+import React, { PureComponent } from 'react';
 
 export default class HeaderSearch extends PureComponent {
   static propTypes = {
@@ -102,12 +103,12 @@ export default class HeaderSearch extends PureComponent {
     const { className, placeholder, open, ...restProps } = this.props;
     const { searchMode, value } = this.state;
     delete restProps.defaultOpen; // for rc-select not affected
-    const inputClass = classNames(styles.input, {
-      [styles.show]: searchMode,
+    const inputClass = classNames("input", {
+      "show": searchMode,
     });
     return (
       <span
-        className={classNames(className, styles.headerSearch)}
+        className={classNames(className, "headerSearch")}
         onClick={this.enterSearchMode}
         onTransitionEnd={({ propertyName }) => {
           if (propertyName === 'width' && !searchMode) {

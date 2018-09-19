@@ -1,8 +1,9 @@
+import './index.less';
+
 import { Icon } from 'antd';
 import Debounce from 'lodash-decorators/debounce';
 import React, { PureComponent } from 'react';
 import RightContent from './RightContent';
-import styles from './index.less';
 
 export default class Header extends PureComponent {
   componentWillUnmount() {
@@ -23,11 +24,10 @@ export default class Header extends PureComponent {
   };
   render() {
     const { collapsed } = this.props;
-    console.log(styles, '--styles.header')
     return (
-      <div className={styles.header} target='AAA'>
+      <div className="header">
         <Icon
-          className={styles.trigger}
+          className="trigger"
           type={collapsed ? 'menu-unfold' : 'menu-fold'}
           onClick={this.toggle}
         />

@@ -1,11 +1,12 @@
-import { Avatar, Button, Dropdown, Icon, Menu, Spin, Tag, Tooltip } from 'antd';
+import './index.less';
+
+import { Avatar, Dropdown, Icon, Menu, Spin, Tag, Tooltip } from 'antd';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
 import React, { PureComponent } from 'react';
 // import { FormattedMessage } from 'umi/locale';
 import HeaderSearch from '../headerSearch';
 import NoticeIcon from '../noticeIcon';
-import styles from './index.less';
 
 export default class GlobalHeaderRight extends PureComponent {
   getNoticeData() {
@@ -49,7 +50,7 @@ export default class GlobalHeaderRight extends PureComponent {
       theme,
     } = this.props;
     const menu = (
-      <Menu className={styles.menu} selectedKeys={[]} onClick={onMenuClick}>
+      <Menu className="menu" selectedKeys={[]} onClick={onMenuClick}>
         <Menu.Item key="userCenter">
           <Icon type="user" />
           <span>account center</span>
@@ -70,14 +71,14 @@ export default class GlobalHeaderRight extends PureComponent {
       </Menu>
     );
     const noticeData = this.getNoticeData();
-    let className = styles.right;
+    let className = "right";
     if (theme === 'dark') {
-      className = `${styles.right}  ${styles.dark}`;
+      className = 'right dark';
     }
     return (
       <div className={className}>
         <HeaderSearch
-          className={`${styles.action} ${styles.search}`}
+          className={"action search"}
           placeholder="站内搜索"
           dataSource={['搜索提示一', '搜索提示二', '搜索提示三']}
           onSearch={value => {
@@ -92,14 +93,14 @@ export default class GlobalHeaderRight extends PureComponent {
             target="_blank"
             href="https://pro.ant.design/docs/getting-started"
             rel="noopener noreferrer"
-            className={styles.action}
+            className="action"
             title="使用文档"
           >
             <Icon type="question-circle-o" />
           </a>
         </Tooltip>
         <NoticeIcon
-          className={styles.action}
+          className="action"
           count={userInfo.notifyCount}
           onItemClick={(item, tabProps) => {
             console.log(item, tabProps); // eslint-disable-line
@@ -130,14 +131,14 @@ export default class GlobalHeaderRight extends PureComponent {
         </NoticeIcon>
         {userInfo.name ? (
           <Dropdown overlay={menu}>
-            <span className={`${styles.action} ${styles.account}`}>
+            <span className="action account">
               <Avatar
                 size="small"
-                className={styles.avatar}
+                className="avatar"
                 src={userInfo.avatar}
                 alt="avatar"
               />
-              <span className={styles.name}>{userInfo.name}</span>
+              <span className="name">{userInfo.name}</span>
             </span>
           </Dropdown>
         ) : (

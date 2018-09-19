@@ -1,8 +1,9 @@
-import React, { PureComponent } from 'react';
-import { Popover, Icon, Tabs, Badge, Spin } from 'antd';
+import './index.less';
+
+import { Badge, Icon, Popover, Spin, Tabs } from 'antd';
 import classNames from 'classnames';
+import React, { PureComponent } from 'react';
 import List from './NoticeList';
-import styles from './index.less';
 
 const { TabPane } = Tabs;
 
@@ -57,7 +58,7 @@ export default class NoticeIcon extends PureComponent {
     });
     return (
       <Spin spinning={loading} delay={0}>
-        <Tabs className={styles.tabs} onChange={this.onTabChange}>
+        <Tabs className="tabs" onChange={this.onTabChange}>
           {panes}
         </Tabs>
       </Spin>
@@ -66,12 +67,12 @@ export default class NoticeIcon extends PureComponent {
 
   render() {
     const { className, count, popupAlign, popupVisible, onPopupVisibleChange, bell } = this.props;
-    const noticeButtonClass = classNames(className, styles.noticeButton);
+    const noticeButtonClass = classNames(className, "noticeButton");
     const notificationBox = this.getNotificationBox();
-    const NoticeBellIcon = bell || <Icon type="bell" className={styles.icon} />;
+    const NoticeBellIcon = bell || <Icon type="bell" className="icon" />;
     const trigger = (
       <span className={noticeButtonClass}>
-        <Badge count={count} style={{ boxShadow: 'none' }} className={styles.badge}>
+        <Badge count={count} style={{ boxShadow: 'none' }} className="badge">
           {NoticeBellIcon}
         </Badge>
       </span>
@@ -87,7 +88,7 @@ export default class NoticeIcon extends PureComponent {
       <Popover
         placement="bottomRight"
         content={notificationBox}
-        popupClassName={styles.popover}
+        popupClassName="popover"
         trigger="click"
         arrowPointAtCenter
         popupAlign={popupAlign}
