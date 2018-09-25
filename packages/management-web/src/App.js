@@ -3,13 +3,21 @@ import './less/all.less';
 import { Provider } from 'mobx-react';
 import React, { Component } from 'react';
 import { Route, BrowserRouter as Router, Switch } from 'react-router-dom';
+import mock from './mock';
 import { routes } from './routes';
-import { store } from './store';
+import { analysisStore, appStore } from './store';
+
+mock.start();
+
+const stores = {
+  appStore,
+  analysisStore
+};
 
 class App extends Component {
   render() {
     return (
-      <Provider store={store}>
+      <Provider {...stores}>
         <Router>
           <Switch>
             {routes.map((route, idx) => (

@@ -1,3 +1,10 @@
+import { AnalysisStore } from './AnalysisStore';
 import { AppStore } from './AppStore';
 
-export const store = new AppStore();
+const appStore = new AppStore();
+const analysisStore = new AnalysisStore();
+
+export {
+  appStore,
+  analysisStore
+}

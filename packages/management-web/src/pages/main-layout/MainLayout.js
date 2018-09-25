@@ -1,12 +1,12 @@
 import './MainLayout.less';
 
 import { Icon, Layout, Menu } from 'antd';
+import { inject } from 'mobx-react';
 import React, { PureComponent } from 'react';
 import { Link, Route, Switch } from 'react-router-dom';
-import Header  from './Header';
 import { config } from '../../config';
 import { bindSelf } from '../../utils';
-import { inject } from 'mobx-react';
+import Header  from './Header';
 
 const menus = config.menus;
 
@@ -14,7 +14,7 @@ function isAbsolutePath(path) {
   return (path || '').indexOf('http') === 0;
 }
 
-@inject('store')
+@inject('appStore')
 export class MainLayout extends PureComponent {
   state = {
     menuCollapsed: false,
@@ -22,7 +22,7 @@ export class MainLayout extends PureComponent {
   };
 
   UNSAFE_componentWillMount() {
-    this._checkLoginState(this.props.store.isLogged);
+    this._checkLoginState(this.props.appStore.isLogged);
   }
   UNSAFE_componentWillReceiveProps(newProps) {
     this._checkLoginState(newProps.store.isLogged);
@@ -158,7 +158,7 @@ export class MainLayout extends PureComponent {
           <Header
             handleMenuCollapse={this.handleMenuCollapseChange}
             {...this.props}
-            {...this.props.store}
+            {...this.props.appStore}
           />
             {/* <Icon
               className="menu-collapse-icon"
