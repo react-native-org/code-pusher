@@ -31,8 +31,11 @@ export class HomePage extends Component {
     const { propsLoading } = this.props;
     const { stateLoading } = this.state;
     const loading = propsLoading || stateLoading;
-    const { visitData } = this.props.analysisStore.chartData;
-    console.log(visitData);
+    let { visitData } = this.props.analysisStore.chartData;
+    if (visitData && visitData.length) {
+      // mobx的obseverable数组，Array.isArray返回为false，需重新转换为真正的数组
+      visitData = visitData.slice();
+    }
     return (
       <div>
         <Row gutter={24}>
