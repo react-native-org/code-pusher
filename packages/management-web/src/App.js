@@ -5,13 +5,14 @@ import React, { Component } from 'react';
 import { Route, BrowserRouter as Router, Switch } from 'react-router-dom';
 import mock from './mock';
 import { routes } from './routes';
-import { analysisStore, appStore } from './store';
+import { analysisStore, appListStore, appStore } from './store';
 
 mock.start();
 
 const stores = {
   appStore,
-  analysisStore
+  analysisStore,
+  appListStore
 };
 
 class App extends Component {

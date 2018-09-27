@@ -25,7 +25,7 @@ export class MainLayout extends PureComponent {
     this._checkLoginState(this.props.appStore.isLogged);
   }
   UNSAFE_componentWillReceiveProps(newProps) {
-    this._checkLoginState(newProps.store.isLogged);
+    this._checkLoginState(newProps.appStore.isLogged);
   }
 
   componentDidMount() {

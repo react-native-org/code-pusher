@@ -14,7 +14,7 @@ export class HomePage extends Component {
     };
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.props.analysisStore.setAnalysisData();
   }
 
@@ -43,14 +43,14 @@ export class HomePage extends Component {
             <ChartCard
               bordered={false}
               loading={loading}
-              title={'這是title'}
+              title={'更新成功数'}
               action={
-                <Tooltip title="指标說明">
+                <Tooltip title="了解详情">
                   <Icon type="info-circle-o" />
                 </Tooltip>
               }
               total={numeral(8846).format('0,0')}
-              footer={<Field label="日访问量" value={numeral(1234).format('0,0')} />}
+              footer={<Field label="日推送量" value={numeral(1234).format('0,0')} />}
               contentHeight={46}
             >
               <MiniArea color="#975FE4" data={visitData} />
