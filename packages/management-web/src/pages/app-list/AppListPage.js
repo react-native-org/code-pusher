@@ -25,7 +25,7 @@ export class AppListPage extends PureComponent {
         {/* 搜索栏 */}
         <Row>
           <Col span={16}>
-            <Button type="primary">
+            <Button type="primary" onClick={() => this.props.history.push('/app/edit')}>
               <Icon type="plus" />创建应用
             </Button>
           </Col>
